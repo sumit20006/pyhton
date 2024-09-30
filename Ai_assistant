@@ -1,0 +1,93 @@
+import speech_recognition as sr
+import pyttsx3
+import datetime
+import time
+
+# Initialize the recognizer and TTS engine
+recognizer = sr.Recognizer()
+engine = pyttsx3.init()
+
+# Set up the voice to sound more natural
+voices = engine.getProperty('voices')
+engine.setProperty('voice', voices[0].id)  # Choose the voice you prefer
+engine.setProperty('rate', 150)  # Speed of speech
+
+# Speak function
+def speak(text):
+    engine.say(text)
+    engine.runAndWait()
+
+# Listen to the user's command
+def listen():
+    with sr.Microphone() as source:
+        print("Listening...")
+        recognizer.adjust_for_ambient_noise(source)
+        audio = recognizer.listen(source)
+
+    try:
+        command = recognizer.recognize_google(audio)
+        print(f"User said: {command}")
+        return command.lower()
+    except sr.UnknownValueError:
+        speak("Sorry, I didn't catch that. Could you please repeat?")
+        return None
+
+# Function to get the current time
+def tell_time():
+    current_time = datetime.datetime.now().strftime("%I:%M %p")
+    speak(f"The current time is {current_time}")
+
+# Function to get the current date
+def tell_date():
+    today = datetime.datetime.today().strftime("%B %d, %Y")
+    speak(f"Today's date is {today}")
+
+# Function to set reminders
+reminders = []
+
+def set_reminder():
+    speak("What should I remind you about?")
+    reminder = listen()
+    if reminder:
+        speak("In how many minutes?")
+        time_duration = listen()
+        try:
+            minutes = int(time_duration)
+            reminders.append((reminder, time.time() + minutes * 60))
+            speak(f"Reminder set for {reminder} in {minutes} minutes.")
+        except ValueError:
+            speak("Sorry, I didn't understand the time.")
+
+# Function to check reminders
+def check_reminders():
+    current_time = time.time()
+    for reminder, remind_time in reminders[:]:
+        if current_time >= remind_time:
+            speak(f"Reminder: {reminder}")
+            reminders.remove((reminder, remind_time))
+
+# Command Handler
+def handle_command(command):
+    if 'time' in command:
+        tell_time()
+    elif 'date' in command:
+        tell_date()
+    elif 'reminder' in command or 'remind me' in command:
+        set_reminder()
+    elif 'stop' in command or 'exit' in command:
+        speak("Goodbye!")
+        exit(0)
+    else:
+        speak("Sorry, I can only help with time, date, and reminders for now.")
+
+# Main function to run the assistant
+def run_assistant():
+    speak("Hello, how can I assist you today?")
+    while True:
+        check_reminders()
+        command = listen()
+        if command:
+            handle_command(command)
+
+if __name__ == "__main__":
+    run_assistant()
